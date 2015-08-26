@@ -25,7 +25,7 @@ function getSeenDidYouKnows(successCallback, errorCallback) {
       "did_you_knows",
       function(result){ didYouKnows = result; success(); },
       function(error){
-        if(error && error.code == 404) {
+        if(error && error.status == 404) {
            didYouKnows = []; success();
         } else {
           errorCallback && errorCallback(error);
@@ -61,7 +61,7 @@ function updateEndpoint(name, obj, successCallback, errorCallback) {
   var encryptedPayload = WalletCrypto.encryptMetaData(obj, MyWallet.wallet.metaDataKey);
 
   $.ajax({
-    type: "PUT",
+    type: "POST",
     url: endpoint + name,
     dataType: 'json',
     headers: {
