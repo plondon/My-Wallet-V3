@@ -107,7 +107,7 @@ describe "MetaData", ->
 
     it 'should return an empty array if endpoint returns 404', ->
       spyOn(MetaData, "_fetchEndpoint").and.callFake((name, success, error) ->
-        error({code: 404})
+        error({status: 404})
       )
 
       obs =
