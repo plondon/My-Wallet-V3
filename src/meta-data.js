@@ -8,6 +8,7 @@ var WalletCrypto = require('./wallet-crypto');
 var endpoint = "https://local.blockchain.com:8080/";
 
 var didYouKnows = null
+var activities = null
 
 function setEndpoint(value) {
   endpoint = value;
@@ -54,6 +55,59 @@ function seenDidYouKnow(id, successCallback, errorCallback) {
     proceed()
   }
 }
+
+// Type:
+//   0: transaction
+//   4: setting change
+// Time: unix timestamp
+// Key: e.g. the transaction hash
+function addActivity(type, time, key, successCallback, errorCallback) {
+  // TOOD: validate parameters
+  var parentThis = this;
+  var proceed = function(value) {
+    if(value != undefined) {
+      // Needed to make the mock work
+      activities = value;
+    }
+
+    activities.push({
+      type: type,
+      time: time,
+      key: key
+    });
+    parentThis._updateEndpoint("activities", activities, successCallback, errorCallback);
+  };
+
+  if(activities == null) {
+    this.getActivities(proceed, errorCallback);
+  } else {
+    proceed()
+  }
+}
+
+function getActivities(successCallback, errorCallback) {
+  var success = function() {
+    successCallback && successCallback(activities);
+  }
+
+  if(activities != null) {
+    success();
+  } else {
+    this._fetchEndpoint( // Using 'this' makes testing easier
+      "activities",
+      function(result){ activities = result; success(); },
+      function(error){
+        if(error && error.status == 404) {
+           activities = []; success();
+        } else {
+          errorCallback && errorCallback(error);
+        }
+      }
+    );
+  }
+}
+
+
 // Private:
 
 function updateEndpoint(name, obj, successCallback, errorCallback) {
@@ -98,12 +152,15 @@ function fetchEndpoint(name, successCallback, errorCallback) {
 
 function reset() {
   didYouKnows = null
+  activities = null
 }
 
 module.exports = {
   setEndpoint : setEndpoint,
   getSeenDidYouKnows : getSeenDidYouKnows,
   seenDidYouKnow : seenDidYouKnow,
+  getActivities : getActivities,
+  addActivity : addActivity,
   // Only for tests:
   _fetchEndpoint : fetchEndpoint,
   _updateEndpoint : updateEndpoint,

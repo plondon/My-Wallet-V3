@@ -151,3 +151,54 @@ describe "MetaData", ->
       spyOn(MetaData, "_updateEndpoint")
       MetaData.seenDidYouKnow(3)
       expect(MetaData._updateEndpoint).not.toHaveBeenCalled()
+
+  describe "getActivities()", ->
+    it "should fetch from server if not done so already", ->
+      spyOn(MetaData, "_fetchEndpoint").and.callFake((name, success) ->
+        success([1]))
+
+      MetaData.getActivities()
+      expect(MetaData._fetchEndpoint).toHaveBeenCalled()
+
+      MetaData.getActivities()
+
+      expect(MetaData._fetchEndpoint.calls.count()).toEqual(1)
+
+    it 'should return an empty array if endpoint returns 404', ->
+      spyOn(MetaData, "_fetchEndpoint").and.callFake((name, success, error) ->
+        error({status: 404})
+      )
+
+      obs =
+        success: () ->
+
+      spyOn(obs, "success")
+
+      MetaData.getActivities(obs.success)
+
+      expect(obs.success).toHaveBeenCalledWith([])
+
+
+  describe "addActivity()", ->
+    it "should call getActivities() not done so already", ->
+
+      spyOn(MetaData, "_fetchEndpoint").and.callFake((name, success) ->
+        success([]))
+
+      spyOn(MetaData, "getActivities").and.callThrough()
+      MetaData.addActivity(1,2,3)
+      expect(MetaData.getActivities).toHaveBeenCalled()
+
+      MetaData.addActivity(1,2,3)
+      expect(MetaData.getActivities.calls.count()).toEqual(1)
+
+    it "should add it to the array and save", ->
+      spyOn(MetaData, "getActivities").and.callFake((success) ->
+        success([{},{},{}])
+      )
+
+      spyOn(MetaData, "_updateEndpoint")
+      MetaData.addActivity(1,2,"specific_key")
+      expect(MetaData._updateEndpoint).toHaveBeenCalled()
+      expect(MetaData._updateEndpoint.calls.argsFor(0)[1].length).toBe(4)
+      expect(MetaData._updateEndpoint.calls.argsFor(0)[1][3].key).toBe("specific_key")
