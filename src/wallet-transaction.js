@@ -156,8 +156,15 @@ function isAccountChange(x) {
 };
 
 function accountPath(x){
-  var accIdx = MyWallet.wallet.hdwallet.account(x.xpub.m).index;
-  return accIdx + x.xpub.path.substr(1);
+  return account(x).index + x.xpub.path.substr(1);
+};
+
+function account(x) {
+  return MyWallet.wallet.hdwallet.account(x.xpub.m);
+};
+
+function address(x) {
+  return MyWallet.wallet.key(x.addr);
 };
 
 function tagCoin(x) {
@@ -165,19 +172,22 @@ function tagCoin(x) {
   var am = x.value;
   var coinType = null;
   var change = false;
+  var label = null;
 
   switch (true) {
     case isLegacy(x):
       coinType = "legacy";
+      label = address(x).label;
       break;
     case isAccount(x):
       coinType = accountPath(x);
       change = isAccountChange(x);
+      label = account(x).label;
       break;
     default:
       coinType = "external";
   }
-  return {address: ad, amount: am, coinType: coinType, change: change};
+  return {address: ad, amount: am, coinType: coinType, change: change, label: label};
 };
 
 function unpackInput(input) {
