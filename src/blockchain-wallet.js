@@ -23,6 +23,7 @@ var MyWallet = require('./wallet'); // This cyclic import should be avoided once
 var ImportExport = require('./import-export');
 var API = require('./api');
 var Tx = require('./wallet-transaction');
+var TxList = require('./transaction-list');
 
 ////////////////////////////////////////////////////////////////////////////////
 // Wallet
@@ -82,6 +83,8 @@ function Wallet(object) {
   this._numberTxTotal   = 0;
   this._numberTxFetched = 0;
   this._txPerScroll     = 50;
+  this._txList          = new TxList();
+  this._legacyTxList    = new TxList();
 }
 
 Object.defineProperties(Wallet.prototype, {
@@ -152,6 +155,25 @@ Object.defineProperties(Wallet.prototype, {
         throw 'Error: wallet.finalBalance must be a number';
     }
   },
+  "txList": {
+    configurable: false,
+    get: function () {
+      var activeTxLists = [this.hdwallet.txList, this.legacyTxList];
+      this._txList.updateChildList(activeTxLists);
+      return this._txList;
+    }
+  },
+  "legacyTxList": {
+    configurable: false,
+    get: function () {
+      var activeTxLists = this.activeKeys
+                          .map(function (active) {
+                            return active.txList;
+                          });
+      this._legacyTxList.updateChildList(activeTxLists);
+      return this._legacyTxList;
+    }
+  },
   "numberTxTotal": {
     configurable: false,
     get: function() { return this._numberTxTotal;},
@@ -164,17 +186,11 @@ Object.defineProperties(Wallet.prototype, {
   },
   "numberTxFetched": {
     configurable: false,
-    get: function() { return this._numberTxFetched;},
-    set: function(value) {
-      if(Helpers.isNumber(value))
-        this._numberTxFetched = value;
-      else
-        throw 'Error: wallet.numberTxFetched must be a number';
-    }
+    get: function() { return this.txList.txsFetched; }
   },
   "txPerScroll": {
     configurable: false,
-    get: function() { return this._txPerScroll;}
+    get: function() { return this.txList.loadNumber; }
   },
   "addresses": {
     configurable: false,
@@ -386,24 +402,13 @@ Wallet.prototype.getHistory = function() {
 };
 
 Wallet.prototype.fetchMoreTransactions = function(didFetchOldestTransaction) {
-  var xpubs = this.isUpgradedToHD ? this.hdwallet.activeXpubs : [];
-  var list = this.activeAddresses.concat(xpubs);
-  var txListP = API.getHistory(list, null, this.numberTxFetched, this.txPerScroll);
-  function processTxs(data) {
-    var pTx = data.txs.map(MyWallet.processTransaction.compose(TransactionFromJSON));
-    this.numberTxFetched += pTx.length;
-    if (pTx.length < this.txPerScroll) { didFetchOldestTransaction(); }
-    return pTx;
+  var checkForOldestTransaction = function (numberTxFetched) {
+    if (numberTxFetched < this.txList.loadNumber) didFetchOldestTransaction();
+    return numberTxFetched;
   };
-  return txListP.then(processTxs.bind(this));
+  return this.txList.fetchTxs().then(checkForOldestTransaction);
 };
 
-Wallet.prototype.ask100TxTest = function(){
-  var context = this.activeAddresses.concat(this.hdwallet.activeXpubs);
-  var txListP = API.getHistory(context, null, 0, 100);
-  function processTxs(data) { return data.txs.map(Tx.factory);};
-  return txListP.then(processTxs);
-};
 ////////////////////////////////////////////////////////////////////////////////
 
 Wallet.prototype.getBalancesForArchived = function() {

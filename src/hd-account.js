@@ -9,6 +9,7 @@ var Helpers = require('./helpers');
 var WalletCrypto = require('./wallet-crypto');
 var KeyRing  = require('./keyring');
 var MyWallet = require('./wallet'); // This cyclic import should be avoided once the refactor is complete
+var TxList   = require('./transaction-list');
 ////////////////////////////////////////////////////////////////////////////////
 // HDAccount Class
 
@@ -37,13 +38,13 @@ function HDAccount(object){
   this._n_tx          = 0;
   this._balance       = null;
   this._index         = Helpers.isNumber(obj.index) ? obj.index : null;
+  this._txList        = new TxList(this.extendedPublicKey);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // PUBLIC PROPERTIES
 
 Object.defineProperties(HDAccount.prototype, {
-
   "label": {
     configurable: false,
     get: function() { return this._label;},
@@ -65,6 +66,10 @@ Object.defineProperties(HDAccount.prototype, {
       else
         throw 'Error: account.balance must be a number';
     }
+  },
+  "txList": {
+    configurable: false,
+    get: function () { return this._txList; }
   },
   "n_tx": {
     get: function() { return this._n_tx;},

@@ -9,6 +9,7 @@ var HDAccount = require('./hd-account');
 var WalletCrypto = require('./wallet-crypto');
 var BIP39 = require('bip39');
 var MyWallet = require('./wallet'); // This cyclic import should be avoided once the refactor is complete
+var TxList = require('./transaction-list');
 ////////////////////////////////////////////////////////////////////////////////
 // Address class
 function HDWallet(object){
@@ -29,6 +30,7 @@ function HDWallet(object){
   this._default_account_idx = obj.default_account_idx;
   this._accounts = obj.accounts ? obj.accounts.map(addAccount) : [];
   this._paidTo              = obj.paidTo;
+  this._txList              = new TxList();
 }
 
 Object.defineProperties(HDWallet.prototype, {
@@ -55,6 +57,17 @@ Object.defineProperties(HDWallet.prototype, {
       else{
         throw 'Error: unvalid default index account';
       };
+    }
+  },
+  "txList": {
+    configurable: false,
+    get: function () {
+      var activeTxLists = this.activeAccounts
+                          .map(function (active) {
+                            return active.txList;
+                          });
+      this._txList.updateChildList(activeTxLists);
+      return this._txList;
     }
   },
   "defaultAccount": {

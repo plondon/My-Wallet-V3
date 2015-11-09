@@ -6,6 +6,7 @@ var Base58   = require('bs58');
 var Bitcoin  = require('bitcoinjs-lib');
 var Helpers  = require('./helpers');
 var MyWallet = require('./wallet'); // This cyclic import should be avoided once the refactor is complete
+var TxList   = require('./transaction-list');
 ////////////////////////////////////////////////////////////////////////////////
 // Address class
 function Address(object){
@@ -20,6 +21,7 @@ function Address(object){
   this._created_device_version = obj.created_device_version;
   // non saved properties
   this._balance                = null; // updated from the server
+  this._txList                 = new TxList(this.address);
 }
 
 // public members
@@ -59,6 +61,10 @@ Object.defineProperties(Address.prototype, {
   "created_device_version": {
     configurable: false,
     get: function() {return this._created_device_version;}
+  },
+  "txList": {
+    configurable: false,
+    get: function () { return this._txList; }
   },
   "balance": {
     configurable: false,
