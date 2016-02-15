@@ -46,7 +46,7 @@ var Transaction = function (unspentOutputs, toAddresses, amounts, fee, changeAdd
   for (var i = 0; i < unspent.length; i++) {
     var output = unspent[i];
     var transactionHashBuffer = Buffer(output.hash, 'hex');
-    transaction.addInput(transactionHashBuffer.reverse(), output.index);
+    transaction.addInput([].reverse.call(transactionHashBuffer), output.index);
     nIns += 1;
     this.fee = Helpers.isNumber(forcedFee) ? forcedFee : Helpers.guessFee(nIns, nOuts, MyWallet.wallet.fee_per_kb);
 
